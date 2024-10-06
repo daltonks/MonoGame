@@ -3,6 +3,7 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.Numerics;
 using System.Text;
 
 namespace Microsoft.Xna.Framework.Graphics
@@ -405,6 +406,77 @@ namespace Microsoft.Xna.Framework.Graphics
                         _texCoordBR,
                         layerDepth);
             }
+
+			FlushIfNeeded();
+		}
+
+        /// <summary>
+        /// Submit a sprite for drawing in the current batch.
+        /// </summary>
+        /// <param name="texture">A texture.</param>
+        /// <param name="matrix">The transform matrix.</param>
+        /// <param name="sourceRectangle">An optional region on the texture which will be rendered. If null - draws full texture.</param>
+        /// <param name="color">A color mask.</param>
+        /// <param name="effects">Modificators for drawing. Can be combined.</param>
+        /// <param name="layerDepth">A depth of the layer of this sprite.</param>
+		public void Draw (Texture2D texture,
+            ref Matrix3x2 matrix,
+			ref Rectangle? sourceRectangle,
+			Color color,
+			SpriteEffects effects,
+            float layerDepth)
+		{
+            CheckValid(texture);
+            var item = _batcher.CreateBatchItem();
+            item.Texture = texture;
+
+            // set SortKey based on SpriteSortMode.
+            switch ( _sortMode )
+            {
+                // Comparison of Texture objects.
+                case SpriteSortMode.Texture:
+                    item.SortKey = texture.SortingKey;
+                    break;
+                // Comparison of Depth
+                case SpriteSortMode.FrontToBack:
+                    item.SortKey = layerDepth;
+                    break;
+                // Comparison of Depth in reverse
+                case SpriteSortMode.BackToFront:
+                    item.SortKey = -layerDepth;
+                    break;
+            }
+
+            if (sourceRectangle.HasValue)
+            {
+                var srcRect = sourceRectangle.GetValueOrDefault();
+                _texCoordTL.X = srcRect.X * texture.TexelWidth;
+                _texCoordTL.Y = srcRect.Y * texture.TexelHeight;
+                _texCoordBR.X = (srcRect.X + srcRect.Width) * texture.TexelWidth;
+                _texCoordBR.Y = (srcRect.Y + srcRect.Height) * texture.TexelHeight;
+            }
+            else
+            {
+                _texCoordTL = Vector2.Zero;
+                _texCoordBR = Vector2.One;
+            }
+
+			if ((effects & SpriteEffects.FlipVertically) != 0)
+            {
+                (_texCoordBR.Y, _texCoordTL.Y) = (_texCoordTL.Y, _texCoordBR.Y);
+            }
+			if ((effects & SpriteEffects.FlipHorizontally) != 0)
+            {
+                (_texCoordBR.X, _texCoordTL.X) = (_texCoordTL.X, _texCoordBR.X);
+            }
+
+            item.Set(matrix,
+                texture.width,
+                texture.height,
+                color,
+                _texCoordTL,
+                _texCoordBR,
+                layerDepth);
 
 			FlushIfNeeded();
 		}

@@ -3,6 +3,7 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.Numerics;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
@@ -82,6 +83,48 @@ namespace Microsoft.Xna.Framework.Graphics
 
             vertexBR.Position.X = x + w;
             vertexBR.Position.Y = y + h;
+            vertexBR.Position.Z = depth;
+            vertexBR.Color = color;
+            vertexBR.TextureCoordinate.X = texCoordBR.X;
+            vertexBR.TextureCoordinate.Y = texCoordBR.Y;
+        }
+
+        public void Set(
+            in Matrix3x2 matrix,
+            in int width,
+            in int height,
+            in Color color,
+            in Vector2 texCoordTL,
+            in Vector2 texCoordBR,
+            in float depth)
+        {
+            var positionTL = System.Numerics.Vector2.Transform(new System.Numerics.Vector2(0, 0), matrix);
+            vertexTL.Position.X = positionTL.X;
+            vertexTL.Position.Y = positionTL.Y;
+            vertexTL.Position.Z = depth;
+            vertexTL.Color = color;
+            vertexTL.TextureCoordinate.X = texCoordTL.X;
+            vertexTL.TextureCoordinate.Y = texCoordTL.Y;
+
+            var positionTR = System.Numerics.Vector2.Transform(new System.Numerics.Vector2(width, 0), matrix);
+            vertexTR.Position.X = positionTR.X;
+            vertexTR.Position.Y = positionTR.Y;
+            vertexTR.Position.Z = depth;
+            vertexTR.Color = color;
+            vertexTR.TextureCoordinate.X = texCoordBR.X;
+            vertexTR.TextureCoordinate.Y = texCoordTL.Y;
+
+            var positionBL = System.Numerics.Vector2.Transform(new System.Numerics.Vector2(0, height), matrix);
+            vertexBL.Position.X = positionBL.X;
+            vertexBL.Position.Y = positionBL.Y;
+            vertexBL.Position.Z = depth;
+            vertexBL.Color = color;
+            vertexBL.TextureCoordinate.X = texCoordTL.X;
+            vertexBL.TextureCoordinate.Y = texCoordBR.Y;
+
+            var positionBR = System.Numerics.Vector2.Transform(new System.Numerics.Vector2(width, height), matrix);
+            vertexBR.Position.X = positionBR.X;
+            vertexBR.Position.Y = positionBR.Y;
             vertexBR.Position.Z = depth;
             vertexBR.Color = color;
             vertexBR.TextureCoordinate.X = texCoordBR.X;
