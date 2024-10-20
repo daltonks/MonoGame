@@ -446,9 +446,15 @@ namespace Microsoft.Xna.Framework.Graphics
                     break;
             }
 
+            var width = 0;
+            var height = 0;
             if (sourceRectangle.HasValue)
             {
                 var srcRect = sourceRectangle.GetValueOrDefault();
+
+                width = srcRect.Width;
+                height = srcRect.Height;
+
                 _texCoordTL.X = srcRect.X * texture.TexelWidth;
                 _texCoordTL.Y = srcRect.Y * texture.TexelHeight;
                 _texCoordBR.X = (srcRect.X + srcRect.Width) * texture.TexelWidth;
@@ -456,13 +462,16 @@ namespace Microsoft.Xna.Framework.Graphics
             }
             else
             {
+                width = texture.width;
+                height = texture.height;
+
                 _texCoordTL = Vector2.Zero;
                 _texCoordBR = Vector2.One;
             }
 
             item.Set(matrix,
-                texture.width,
-                texture.height,
+                width,
+                height,
                 color,
                 _texCoordTL,
                 _texCoordBR,
