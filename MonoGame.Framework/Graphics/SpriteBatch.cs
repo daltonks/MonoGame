@@ -422,7 +422,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		public void Draw (Texture2D texture,
             ref Matrix3x2 matrix,
 			ref Rectangle? sourceRectangle,
-			in Color color,
+			ref Color color,
             in float layerDepth)
 		{
             CheckValid(texture);
