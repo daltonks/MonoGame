@@ -19,6 +19,3 @@
 [submodule "src/monogame/external/volk"]
 	path = native/monogame/external/volk
 	url = https://github.com/zeux/volk.git
-[submodule "external/MonoGame.Templates"]
-	path = external/MonoGame.Templates
-	url = https://github.com/MonoGame/MonoGame.Templates.git
