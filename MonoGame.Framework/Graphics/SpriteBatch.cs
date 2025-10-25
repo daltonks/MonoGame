@@ -420,8 +420,8 @@ namespace Microsoft.Xna.Framework.Graphics
         /// <param name="effects">Modificators for drawing. Can be combined.</param>
         /// <param name="layerDepth">A depth of the layer of this sprite.</param>
 		public void Draw (Texture2D texture,
-            ref Matrix3x2 matrix,
-			ref Rectangle sourceRectangle,
+            in Matrix3x2 matrix,
+			in Rectangle sourceRectangle,
 			Color color,
             float layerDepth = 0)
         {
@@ -452,9 +452,9 @@ namespace Microsoft.Xna.Framework.Graphics
             _texCoordBR.Y = (sourceRectangle.Y + sourceRectangle.Height) * texture.TexelHeight;
 
             item.Set(
-                ref matrix,
-                ref sourceRectangle.Width,
-                ref sourceRectangle.Height,
+                matrix,
+                sourceRectangle.Width,
+                sourceRectangle.Height,
                 ref color,
                 ref _texCoordTL,
                 ref _texCoordBR,

@@ -90,9 +90,9 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         public void Set(
-            ref Matrix3x2 matrix,
-            ref int width,
-            ref int height,
+            in Matrix3x2 matrix,
+            in int width,
+            in int height,
             ref Color color,
             ref Vector2 texCoordTL,
             ref Vector2 texCoordBR,
