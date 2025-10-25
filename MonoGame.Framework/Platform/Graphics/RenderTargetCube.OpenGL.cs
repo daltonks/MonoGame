@@ -25,6 +25,7 @@ namespace Microsoft.Xna.Framework.Graphics
         int IRenderTarget.GLColorBuffer { get; set; }
         int IRenderTarget.GLDepthBuffer { get; set; }
         int IRenderTarget.GLStencilBuffer { get; set; }
+        int IRenderTarget.GLFramebuffer { get; set; }
 
         TextureTarget IRenderTarget.GetFramebufferTarget(RenderTargetBinding renderTargetBinding)
         {

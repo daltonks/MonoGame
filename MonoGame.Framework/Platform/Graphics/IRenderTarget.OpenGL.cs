@@ -13,6 +13,7 @@ namespace Microsoft.Xna.Framework.Graphics
         int GLColorBuffer { get; set; }
         int GLDepthBuffer { get; set; }
         int GLStencilBuffer { get; set; }
+        int GLFramebuffer { get; set; }
         int MultiSampleCount { get; }
         int LevelCount { get; }
 

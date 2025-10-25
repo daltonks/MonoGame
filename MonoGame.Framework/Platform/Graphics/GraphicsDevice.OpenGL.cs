@@ -710,6 +710,28 @@ namespace Microsoft.Xna.Framework.Graphics
                 renderTarget.GLColorBuffer = renderTarget.GLTexture;
             renderTarget.GLDepthBuffer = depth;
             renderTarget.GLStencilBuffer = stencil;
+
+            // Create FBO immediately for SkiaSharp interop
+            // This creates a simple single-target FBO that can be accessed directly
+            int fbo = 0;
+            this.framebufferHelper.GenFramebuffer(out fbo);
+            this.framebufferHelper.BindFramebuffer(fbo);
+
+            // Attach depth and stencil buffers
+            this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.DepthAttachment, depth, 0);
+            this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.StencilAttachment, stencil, 0);
+
+            // Attach color buffer
+            if (renderTarget.GLColorBuffer != renderTarget.GLTexture)
+                this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.ColorAttachment0, renderTarget.GLColorBuffer, 0);
+            else
+                this.framebufferHelper.FramebufferTexture2D((int)FramebufferAttachment.ColorAttachment0, (int)renderTarget.GLTarget, renderTarget.GLTexture, 0, renderTarget.MultiSampleCount);
+
+            // Store FBO on render target for external access (SkiaSharp)
+            renderTarget.GLFramebuffer = fbo;
+
+            // Unbind to avoid side effects
+            this.framebufferHelper.BindFramebuffer(this.glFramebuffer);
         }
 
         internal void PlatformDeleteRenderTarget(IRenderTarget renderTarget)
@@ -723,6 +745,13 @@ namespace Microsoft.Xna.Framework.Graphics
             depth = renderTarget.GLDepthBuffer;
             stencil = renderTarget.GLStencilBuffer;
             colorIsRenderbuffer = color != renderTarget.GLTexture;
+
+            // Delete the FBO stored directly on the render target
+            if (renderTarget.GLFramebuffer != 0)
+            {
+                this.framebufferHelper.DeleteFramebuffer(renderTarget.GLFramebuffer);
+                renderTarget.GLFramebuffer = 0;
+            }
 
             if (color != 0)
             {
@@ -826,33 +855,74 @@ namespace Microsoft.Xna.Framework.Graphics
         private IRenderTarget PlatformApplyRenderTargets()
         {
             var glFramebuffer = 0;
-            if (!this.glFramebuffers.TryGetValue(this._currentRenderTargetBindings, out glFramebuffer))
+
+            // For single render targets, use the pre-created FBO if available
+            if (this._currentRenderTargetCount == 1)
             {
-                this.framebufferHelper.GenFramebuffer(out glFramebuffer);
-                this.framebufferHelper.BindFramebuffer(glFramebuffer);
-                var renderTargetBinding = this._currentRenderTargetBindings[0];
-                var renderTarget = renderTargetBinding.RenderTarget as IRenderTarget;
-                this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.DepthAttachment, renderTarget.GLDepthBuffer, 0);
-                this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.StencilAttachment, renderTarget.GLStencilBuffer, 0);
-                for (var i = 0; i < this._currentRenderTargetCount; ++i)
+                var renderTarget = this._currentRenderTargetBindings[0].RenderTarget as IRenderTarget;
+                if (renderTarget.GLFramebuffer != 0)
                 {
-                    renderTargetBinding = this._currentRenderTargetBindings[i];
-                    renderTarget = renderTargetBinding.RenderTarget as IRenderTarget;
-                    var attachement = (int)(FramebufferAttachment.ColorAttachment0 + i);
-                    if (renderTarget.GLColorBuffer != renderTarget.GLTexture)
-                        this.framebufferHelper.FramebufferRenderbuffer(attachement, renderTarget.GLColorBuffer, 0);
-                    else
-                        this.framebufferHelper.FramebufferTexture2D(attachement, (int)renderTarget.GetFramebufferTarget(renderTargetBinding), renderTarget.GLTexture, 0, renderTarget.MultiSampleCount);
+                    // Use the FBO that was created in PlatformCreateRenderTarget
+                    this.framebufferHelper.BindFramebuffer(renderTarget.GLFramebuffer);
+                    glFramebuffer = renderTarget.GLFramebuffer;
                 }
+                else
+                {
+                    // Fallback to dictionary-based FBO for compatibility
+                    if (!this.glFramebuffers.TryGetValue(this._currentRenderTargetBindings, out glFramebuffer))
+                    {
+                        this.framebufferHelper.GenFramebuffer(out glFramebuffer);
+                        this.framebufferHelper.BindFramebuffer(glFramebuffer);
+                        this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.DepthAttachment, renderTarget.GLDepthBuffer, 0);
+                        this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.StencilAttachment, renderTarget.GLStencilBuffer, 0);
+                        var attachement = (int)FramebufferAttachment.ColorAttachment0;
+                        if (renderTarget.GLColorBuffer != renderTarget.GLTexture)
+                            this.framebufferHelper.FramebufferRenderbuffer(attachement, renderTarget.GLColorBuffer, 0);
+                        else
+                            this.framebufferHelper.FramebufferTexture2D(attachement, (int)renderTarget.GetFramebufferTarget(this._currentRenderTargetBindings[0]), renderTarget.GLTexture, 0, renderTarget.MultiSampleCount);
 
 #if DEBUG
-                this.framebufferHelper.CheckFramebufferStatus();
+                        this.framebufferHelper.CheckFramebufferStatus();
 #endif
-                this.glFramebuffers.Add((RenderTargetBinding[])_currentRenderTargetBindings.Clone(), glFramebuffer);
+                        this.glFramebuffers.Add((RenderTargetBinding[])_currentRenderTargetBindings.Clone(), glFramebuffer);
+                    }
+                    else
+                    {
+                        this.framebufferHelper.BindFramebuffer(glFramebuffer);
+                    }
+                }
             }
             else
             {
-                this.framebufferHelper.BindFramebuffer(glFramebuffer);
+                // Multi-target rendering uses dictionary-based FBO caching
+                if (!this.glFramebuffers.TryGetValue(this._currentRenderTargetBindings, out glFramebuffer))
+                {
+                    this.framebufferHelper.GenFramebuffer(out glFramebuffer);
+                    this.framebufferHelper.BindFramebuffer(glFramebuffer);
+                    var renderTargetBinding = this._currentRenderTargetBindings[0];
+                    var renderTarget = renderTargetBinding.RenderTarget as IRenderTarget;
+                    this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.DepthAttachment, renderTarget.GLDepthBuffer, 0);
+                    this.framebufferHelper.FramebufferRenderbuffer((int)FramebufferAttachment.StencilAttachment, renderTarget.GLStencilBuffer, 0);
+                    for (var i = 0; i < this._currentRenderTargetCount; ++i)
+                    {
+                        renderTargetBinding = this._currentRenderTargetBindings[i];
+                        renderTarget = renderTargetBinding.RenderTarget as IRenderTarget;
+                        var attachement = (int)(FramebufferAttachment.ColorAttachment0 + i);
+                        if (renderTarget.GLColorBuffer != renderTarget.GLTexture)
+                            this.framebufferHelper.FramebufferRenderbuffer(attachement, renderTarget.GLColorBuffer, 0);
+                        else
+                            this.framebufferHelper.FramebufferTexture2D(attachement, (int)renderTarget.GetFramebufferTarget(renderTargetBinding), renderTarget.GLTexture, 0, renderTarget.MultiSampleCount);
+                    }
+
+#if DEBUG
+                    this.framebufferHelper.CheckFramebufferStatus();
+#endif
+                    this.glFramebuffers.Add((RenderTargetBinding[])_currentRenderTargetBindings.Clone(), glFramebuffer);
+                }
+                else
+                {
+                    this.framebufferHelper.BindFramebuffer(glFramebuffer);
+                }
             }
 #if !GLES
             GL.DrawBuffers(this._currentRenderTargetCount, this._drawBuffers);

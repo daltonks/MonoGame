@@ -25,6 +25,14 @@ namespace Microsoft.Xna.Framework.Graphics
         int IRenderTarget.GLColorBuffer { get; set; }
         int IRenderTarget.GLDepthBuffer { get; set; }
         int IRenderTarget.GLStencilBuffer { get; set; }
+        int IRenderTarget.GLFramebuffer { get; set; }
+
+        /// <summary>
+        /// Gets the OpenGL framebuffer handle for this render target.
+        /// This property is specific to the OpenGL platform and allows external
+        /// libraries (like SkiaSharp) to render directly to this framebuffer.
+        /// </summary>
+        public int GLFramebuffer => ((IRenderTarget)this).GLFramebuffer;
 
         TextureTarget IRenderTarget.GetFramebufferTarget(RenderTargetBinding renderTargetBinding)
         {
