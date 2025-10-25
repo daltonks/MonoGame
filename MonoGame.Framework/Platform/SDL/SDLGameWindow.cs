@@ -82,6 +82,11 @@ namespace Microsoft.Xna.Framework
             }
         }
 
+        public override float DpiScale
+        {
+            get { return GetDpiScale(); }
+        }
+
         public static GameWindow Instance;
         public uint? Id;
         public bool IsFullScreen;
@@ -141,7 +146,8 @@ namespace Microsoft.Xna.Framework
                 Sdl.Window.State.OpenGL |
                 Sdl.Window.State.Hidden |
                 Sdl.Window.State.InputFocus |
-                Sdl.Window.State.MouseFocus;
+                Sdl.Window.State.MouseFocus |
+                Sdl.Window.State.AllowHighDPI;
 
             if (_handle != IntPtr.Zero)
                 Sdl.Window.Destroy(_handle);
@@ -208,6 +214,33 @@ namespace Microsoft.Xna.Framework
             Sdl.Mouse.ShowCursor(visible ? 1 : 0);
         }
 
+        /// <summary>
+        /// Gets the actual drawable size in physical pixels (accounts for HighDPI/Retina displays).
+        /// On Retina displays, this will be 2x the window size.
+        /// </summary>
+        public Point GetDrawableSize()
+        {
+            int w, h;
+            Sdl.Window.GL_GetDrawableSize(_handle, out w, out h);
+            return new Point(w, h);
+        }
+
+        /// <summary>
+        /// Gets the DPI scale factor (drawable size / window size).
+        /// Returns 2.0 on Retina displays, 1.0 on regular displays.
+        /// </summary>
+        public float GetDpiScale()
+        {
+            int windowW, windowH;
+            Sdl.Window.GetSize(_handle, out windowW, out windowH);
+
+            int drawableW, drawableH;
+            Sdl.Window.GL_GetDrawableSize(_handle, out drawableW, out drawableH);
+
+            // Return the scale factor (usually same for both dimensions)
+            return windowW > 0 ? (float)drawableW / windowW : 1.0f;
+        }
+
         public override void BeginScreenDeviceChange(bool willBeFullScreen)
         {
             _willBeFullScreen = willBeFullScreen;
@@ -237,6 +270,8 @@ namespace Microsoft.Xna.Framework
 
             if (!_willBeFullScreen || _game.graphicsDeviceManager.HardwareModeSwitch)
             {
+                // clientWidth/clientHeight are in logical pixels
+                // SDL with AllowHighDPI will automatically create a larger backbuffer on Retina displays
                 Sdl.Window.SetSize(Handle, clientWidth, clientHeight);
                 _width = clientWidth;
                 _height = clientHeight;
@@ -293,19 +328,24 @@ namespace Microsoft.Xna.Framework
 
         public void ClientResize(int width, int height)
         {
+            // Get the actual drawable size in physical pixels for HighDPI support
+            int drawableWidth, drawableHeight;
+            Sdl.Window.GL_GetDrawableSize(_handle, out drawableWidth, out drawableHeight);
+
             // SDL reports many resize events even if the Size didn't change.
             // Only call the code below if it actually changed.
-            if (_game.GraphicsDevice.PresentationParameters.BackBufferWidth == width &&
-                _game.GraphicsDevice.PresentationParameters.BackBufferHeight == height) {
+            if (_game.GraphicsDevice.PresentationParameters.BackBufferWidth == drawableWidth &&
+                _game.GraphicsDevice.PresentationParameters.BackBufferHeight == drawableHeight) {
                 return;
             }
 
             if (_game.GraphicsDevice.RasterizerState.ScissorTestEnable && _game.GraphicsDevice.ScissorRectangle == _game.GraphicsDevice.Viewport.Bounds)
-                _game.GraphicsDevice.ScissorRectangle = new Rectangle(0, 0, width, height);
+                _game.GraphicsDevice.ScissorRectangle = new Rectangle(0, 0, drawableWidth, drawableHeight);
 
-            _game.GraphicsDevice.PresentationParameters.BackBufferWidth = width;
-            _game.GraphicsDevice.PresentationParameters.BackBufferHeight = height;
-            _game.GraphicsDevice.Viewport = new Viewport(0, 0, width, height);
+            // Use drawable size (physical pixels) for backbuffer, not window size (logical pixels)
+            _game.GraphicsDevice.PresentationParameters.BackBufferWidth = drawableWidth;
+            _game.GraphicsDevice.PresentationParameters.BackBufferHeight = drawableHeight;
+            _game.GraphicsDevice.Viewport = new Viewport(0, 0, drawableWidth, drawableHeight);
 
             Sdl.Window.GetSize(Handle, out _width, out _height);
 

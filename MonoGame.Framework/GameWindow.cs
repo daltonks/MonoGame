@@ -92,6 +92,16 @@ namespace Microsoft.Xna.Framework
             }
         }
 
+        /// <summary>
+        /// Gets the DPI scale factor for high-DPI displays (Retina, etc).
+        /// Returns 2.0 on Retina displays, 1.0 on regular displays.
+        /// Default implementation returns 1.0 for platforms that don't support HighDPI.
+        /// </summary>
+        public virtual float DpiScale
+        {
+            get { return 1.0f; }
+        }
+
         internal MouseState MouseState;
 	    internal TouchPanelState TouchPanelState;
 

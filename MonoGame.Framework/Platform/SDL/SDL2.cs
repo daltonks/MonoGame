@@ -446,6 +446,10 @@ internal static class Sdl
         public static d_sdl_getwindowsize GetSize = FuncLoader.LoadFunction<d_sdl_getwindowsize>(NativeLibrary, "SDL_GetWindowSize");
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void d_sdl_gl_getdrawablesize(IntPtr window, out int w, out int h);
+        public static d_sdl_gl_getdrawablesize GL_GetDrawableSize = FuncLoader.LoadFunction<d_sdl_gl_getdrawablesize>(NativeLibrary, "SDL_GL_GetDrawableSize");
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void d_sdl_setwindowbordered(IntPtr window, int bordered);
         public static d_sdl_setwindowbordered SetBordered = FuncLoader.LoadFunction<d_sdl_setwindowbordered>(NativeLibrary, "SDL_SetWindowBordered");
 
